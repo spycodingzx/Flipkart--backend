@@ -45,21 +45,20 @@ app.get("/product/:id", async (req, res) => {
 });
 
 // ✅ Add Dummy Product
-app.get("/add-dummy", async (req, res) => {
-  try {
-    const dummy = new Product({
-      name: "Test Product",
-      price: 999,
-    });
-    await dummy.save();
-    res.send("✅ Dummy product added");
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: "Failed to add dummy product", details: err.message });
-  }
-});
-
+// app.get("/add-dummy", async (req, res) => {
+//   try {
+//     const dummy = new Product({
+//       name: "Test Product",
+//       price: 999,
+//     });
+//     await dummy.save();
+//     res.send("✅ Dummy product added");
+//   } catch (err) {
+//     res
+//       .status(500)
+//       .json({ error: "Failed to add dummy product", details: err.message });
+//   }
+// });
 const { Product } = require("./models/Product");
 
 app.get("/add-dummy", async (req, res) => {
