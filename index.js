@@ -59,7 +59,7 @@ app.get("/product/:id", async (req, res) => {
 //       .json({ error: "Failed to add dummy product", details: err.message });
 //   }
 // });
-const { Product } = require("./models/Product");
+const Product = require("./models/Product");
 
 app.get("/add-dummy", async (req, res) => {
   try {
