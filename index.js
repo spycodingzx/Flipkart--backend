@@ -69,14 +69,14 @@ app.get("/add-dummy", async (req, res) => {
         name: "iPhone 14",
         price: 79900,
         description: "Apple iPhone 14 - 128GB, Blue",
-        image: "https://example.com/iphone14.jpg"
+        image: "https://example.com/iphone14.jpg",
       },
       {
         name: "Samsung Galaxy S23",
         price: 74999,
         description: "Samsung Galaxy S23 - 128GB, Phantom Black",
-        image: "https://example.com/galaxy.jpg"
-      }
+        image: "https://example.com/galaxy.jpg",
+      },
     ]);
 
     res.send("Dummy products added");
@@ -84,7 +84,6 @@ app.get("/add-dummy", async (req, res) => {
     res.status(500).json({ error: "Failed to insert dummy products" });
   }
 });
-
 
 // ✅ Start Server
 app.listen(8080, () => {
