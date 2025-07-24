@@ -59,29 +59,34 @@ app.get("/product/:id", async (req, res) => {
 //       .json({ error: "Failed to add dummy product", details: err.message });
 //   }
 // });
-const Product = require("./models/Product");
+const fs = require("fs");
+const path = require("path");
+const Product = require("./models/Product"); // ensure this import exists
 
 app.get("/add-dummy", async (req, res) => {
   try {
-    await Product.insertMany([
-      {
-        name: "iPhone 14",
-        price: 79900,
-        description: "Apple iPhone 14 - 128GB, Blue",
-        image: "https://example.com/iphone14.jpg",
-      },
-      {
-        name: "Samsung Galaxy S23",
-        price: 74999,
-        description: "Samsung Galaxy S23 - 128GB, Phantom Black",
-        image: "https://example.com/galaxy.jpg",
-      },
-    ]);
+    const filePath = path.join(__dirname, "data.json");
+    const fileData = fs.readFileSync(filePath, "utf-8");
+    const jsonData = JSON.parse(fileData);
 
-    res.send("Dummy products added");
+    if (!Array.isArray(jsonData.products)) {
+      return res
+        .status(400)
+        .json({ error: "Invalid data format in JSON file" });
+    }
+
+    await Product.insertMany(jsonData.products);
+    res.send("✅ Products imported successfully from data.json");
   } catch (err) {
-    res.status(500).json({ error: "Failed to insert dummy products" });
+    console.error("❌ Import Error:", err);
+    res
+      .status(500)
+      .json({ error: "Failed to import products", details: err.message });
   }
+});
+
+app.get("/ping", (req, res) => {
+  res.send("✅ Server is alive and synced!");
 });
 
 // ✅ Start Server
