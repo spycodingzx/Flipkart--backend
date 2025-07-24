@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const express = require("express");
 const router = express.Router();
+const Product = require("./models/Product");
+const { authenticateJWT } = require("./auth");
 
-// Define Cart schema
+// 🛒 Cart Schema
 const Cart = mongoose.model(
   "Cart",
   new mongoose.Schema({
@@ -20,19 +22,22 @@ const Cart = mongoose.model(
   })
 );
 
-// ➕ Add item to cart
-router.post("/cart/add", async (req, res) => {
+// ➕ Add item to cart (requires JWT token)
+router.post("/cart/add", authenticateJWT, async (req, res) => {
   try {
-    const { productId, quantity = 1, user } = req.body;
+    const { productId, quantity = 1 } = req.body;
+    const userId = req.user.userId; // ✅ from token
 
-    if (!productId || !user) {
-      return res.status(400).json({ message: "Product ID and user are required" });
+    if (!productId || !userId) {
+      return res
+        .status(400)
+        .json({ message: "Product ID and user ID are required" });
     }
 
-    let cart = await Cart.findOne({ userId: user });
+    let cart = await Cart.findOne({ userId });
 
     if (!cart) {
-      cart = new Cart({ userId: user, items: [] });
+      cart = new Cart({ userId, items: [] });
     }
 
     const existingItemIndex = cart.items.findIndex(
@@ -40,10 +45,8 @@ router.post("/cart/add", async (req, res) => {
     );
 
     if (existingItemIndex > -1) {
-      // If item already exists, update quantity
       cart.items[existingItemIndex].quantity += parseInt(quantity);
     } else {
-      // Else, add new item
       cart.items.push({ productId, quantity: parseInt(quantity) });
     }
 
@@ -53,34 +56,45 @@ router.post("/cart/add", async (req, res) => {
     res.status(200).json({ message: "Item added to cart", cart });
   } catch (error) {
     console.error("Cart Add Error:", error);
-    res.status(500).json({
-      error: "Internal server error. Item has not been added",
-    });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// 📦 Get all carts
-router.get("/carts", async (req, res) => {
+// 📦 Get user's cart (requires JWT)
+router.get("/carts", authenticateJWT, async (req, res) => {
   try {
-    const carts = await Cart.find({});
+    const userId = req.user.userId;
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+      return res.status(404).json({ message: "No cart found for user" });
+    }
+
+    // ✅ Populate product details
+    const populatedItems = await Promise.all(
+      cart.items.map(async (item) => {
+        const product = await Product.findById(item.productId);
+        return {
+          product: product || null,
+          quantity: item.quantity,
+        };
+      })
+    );
+
     res.status(200).json({
-      success: true,
-      count: carts.length,
-      data: carts,
+      userId: cart.userId,
+      items: populatedItems,
     });
   } catch (error) {
-    console.log("Error fetching carts:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch cart data",
-      error: error.message,
-    });
+    console.error("Fetch Cart Error:", error);
+    res.status(500).json({ error: "Failed to fetch cart data" });
   }
 });
 
 // 🗑️ Delete item from cart
-router.delete("/cart/:userId/:productId", async (req, res) => {
-  const { userId, productId } = req.params;
+router.delete("/cart/:productId", authenticateJWT, async (req, res) => {
+  const userId = req.user.userId;
+  const { productId } = req.params;
 
   try {
     const cart = await Cart.findOne({ userId });
@@ -89,11 +103,7 @@ router.delete("/cart/:userId/:productId", async (req, res) => {
       return res.status(404).json({ message: "Cart not found for user" });
     }
 
-    const updatedItems = cart.items.filter(
-      (item) => item.productId !== productId
-    );
-
-    cart.items = updatedItems;
+    cart.items = cart.items.filter((item) => item.productId !== productId);
     cart.updatedAt = new Date();
     await cart.save();
 
